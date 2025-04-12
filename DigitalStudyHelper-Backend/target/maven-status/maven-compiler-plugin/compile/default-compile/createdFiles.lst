@@ -1,0 +1,11 @@
+com\example\digitalstudyhelper\repository\UserRepository.class
+com\example\digitalstudyhelper\entity\User.class
+com\example\digitalstudyhelper\controller\LinkController.class
+com\example\digitalstudyhelper\controller\OAuth2RegistrationController.class
+com\example\digitalstudyhelper\DigitalStudyHelperApplication.class
+com\example\digitalstudyhelper\controller\AuthController.class
+com\example\digitalstudyhelper\entity\Link.class
+com\example\digitalstudyhelper\service\CustomOAuth2UserService.class
+com\example\digitalstudyhelper\repository\LinkRepository.class
+com\example\digitalstudyhelper\dto\OAuth2UserRegistrationRequest.class
+com\example\digitalstudyhelper\config\SecurityConfig.class
