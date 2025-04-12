@@ -3,216 +3,213 @@ import './App.css'
 import AuthForm from './components/AuthForm'
 
 function App() {
-  const [url, setUrl] = useState('')
-  const [name, setName] = useState('')
-  const [links, setLinks] = useState([])
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
+  const [links, setLinks] = useState([])
+  const [url, setUrl] = useState('')
+  const [hyperlink, setHyperlink] = useState('')
   const [error, setError] = useState(null)
-  const [isRegistering, setIsRegistering] = useState(false)
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsAuthenticated(true);
+      // You might want to validate the token here
+    }
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchLinks()
+      fetchLinks();
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   const fetchLinks = async () => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token');
       if (!token) {
-        setError('Please login to view links')
-        return
+        throw new Error('No authentication token found');
       }
 
-      console.log('Fetching links with token:', token)
-      
       const response = await fetch('http://localhost:8080/api/links', {
+        method: 'GET',
         headers: {
-          'Authorization': `Basic ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      })
+      });
 
-      console.log('Fetch links response status:', response.status)
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Fetch links error response:', errorText)
-        let errorMessage = 'Failed to fetch links'
-        try {
-          const errorData = JSON.parse(errorText)
-          errorMessage = errorData.error || errorMessage
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError)
-        }
-        throw new Error(errorMessage)
+      if (response.status === 401) {
+        // Token expired or invalid
+        handleLogout();
+        throw new Error('Session expired. Please login again.');
       }
 
-      const data = await response.json()
-      console.log('Fetch links success response:', data)
-      
-      setLinks(data)
-      setError(null)
-    } catch (err) {
-      console.error('Error fetching links:', err)
-      setError(err.message)
-    }
-  }
+      if (!response.ok) {
+        throw new Error('Failed to fetch links');
+      }
 
-  const handleAuthSuccess = (user) => {
-    setIsAuthenticated(true)
-    setCurrentUser(user)
-  }
+      const data = await response.json();
+      setLinks(data);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleAuthSuccess = (userData) => {
+    setIsAuthenticated(true);
+    setCurrentUser(userData);
+    setError(null);
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    setIsAuthenticated(false)
-    setCurrentUser(null)
-    setLinks([])
-  }
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setLinks([]);
+    localStorage.removeItem('token');
+    setError(null);
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!url || !name) {
-      setError('Please fill in all fields')
-      return
-    }
+    e.preventDefault();
+    setError(null);
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token');
       if (!token) {
-        setError('Please login to create links')
-        return
+        throw new Error('No authentication token found');
       }
 
-      console.log('Creating link with:', { url, name })
-      console.log('Using token:', token)
-      
-      const response = await fetch('http://localhost:8080/api/create-link', {
+      const response = await fetch('http://localhost:8080/api/links', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Basic ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ url, name })
-      })
+        body: JSON.stringify({ url, hyperlink })
+      });
 
-      console.log('Create link response status:', response.status)
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Create link error response:', errorText)
-        let errorMessage = 'Failed to create link'
-        try {
-          const errorData = JSON.parse(errorText)
-          errorMessage = errorData.error || errorMessage
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError)
-        }
-        throw new Error(errorMessage)
+      if (response.status === 401) {
+        handleLogout();
+        throw new Error('Session expired. Please login again.');
       }
 
-      const data = await response.json()
-      console.log('Create link success response:', data)
-      
-      setLinks([data, ...links])
-      setError(null)
-      setUrl('')
-      setName('')
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create link');
+      }
+
+      const newLink = await response.json();
+      setLinks([...links, newLink]);
+      setUrl('');
+      setHyperlink('');
     } catch (err) {
-      console.error('Error creating link:', err)
-      setError(err.message)
+      setError(err.message);
     }
-  }
+  };
 
   const handleDelete = async (id) => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token');
       if (!token) {
-        setError('Please login to delete links')
-        return
+        throw new Error('No authentication token found');
       }
 
       const response = await fetch(`http://localhost:8080/api/links/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Basic ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      })
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to delete link')
+      if (response.status === 401) {
+        handleLogout();
+        throw new Error('Session expired. Please login again.');
       }
 
-      setLinks(links.filter(link => link.id !== id))
+      if (!response.ok) {
+        throw new Error('Failed to delete link');
+      }
+
+      setLinks(links.filter(link => link.id !== id));
     } catch (err) {
-      setError(err.message)
-      console.error('Error:', err)
+      setError(err.message);
     }
-  }
+  };
 
   if (!isAuthenticated) {
-    return <AuthForm onAuthSuccess={handleAuthSuccess} />
+    return <AuthForm onAuthSuccess={handleAuthSuccess} />;
   }
 
   return (
-    <div className="app">
-      <header>
+    <div className="app-container">
+      <header className="app-header">
         <h1>Digital Study Helper</h1>
         <div className="user-info">
-          <span>Welcome, {currentUser.username}</span>
+          <span>Welcome, {currentUser?.username}!</span>
           <button onClick={handleLogout} className="logout-btn">Logout</button>
         </div>
       </header>
-      <main>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="url">URL:</label>
-            <input
-              type="text"
-              id="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter URL (e.g., https://example.com)"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="name">Link Name:</label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter link name"
-              required
-            />
-          </div>
-          <button type="submit">Create Link</button>
-        </form>
 
-        {error && <div className="error">{error}</div>}
+      <main className="main-content">
+        <div className="link-form">
+          <h2>Create New Link</h2>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label htmlFor="url">URL:</label>
+              <input
+                type="url"
+                id="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                required
+                placeholder="Enter URL"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="hyperlink">Hyperlink Text:</label>
+              <input
+                type="text"
+                id="hyperlink"
+                value={hyperlink}
+                onChange={(e) => setHyperlink(e.target.value)}
+                required
+                placeholder="Enter hyperlink text"
+              />
+            </div>
+            <button type="submit" className="submit-btn">Create Link</button>
+          </form>
+        </div>
+
+        {error && <div className="error-message">{error}</div>}
 
         <div className="links-list">
           <h2>Your Links</h2>
           {links.length === 0 ? (
-            <p>No entries</p>
+            <p>No links created yet. Create your first link above!</p>
           ) : (
-            links.map(link => (
-              <div key={link.id} className="link-item">
-                <a href={link.url} target="_blank" rel="noopener noreferrer">
-                  {link.name}
-                </a>
-                <button onClick={() => handleDelete(link.id)}>Delete</button>
-              </div>
-            ))
+            <ul>
+              {links.map(link => (
+                <li key={link.id} className="link-item">
+                  <a href={link.url} target="_blank" rel="noopener noreferrer">
+                    {link.hyperlink}
+                  </a>
+                  <button
+                    onClick={() => handleDelete(link.id)}
+                    className="delete-btn"
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </main>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
 

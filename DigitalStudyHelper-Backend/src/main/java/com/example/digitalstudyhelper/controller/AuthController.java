@@ -1,15 +1,18 @@
 package com.example.digitalstudyhelper.controller;
 
+import com.example.digitalstudyhelper.config.JwtUtil;
 import com.example.digitalstudyhelper.entity.User;
 import com.example.digitalstudyhelper.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -22,44 +25,56 @@ public class AuthController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user) {
-        Map<String, String> response = new HashMap<>();
-        
-        // Check if username already exists
-        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
-            response.put("error", "Username already exists");
-            return ResponseEntity.badRequest().body(response);
+    public ResponseEntity<?> register(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        String email = request.get("email");
+        String password = request.get("password");
+
+        if (userRepository.findByUsername(username).isPresent()) {
+            return ResponseEntity.badRequest().body("Username already exists");
         }
 
-        // Check if email already exists
-        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-            response.put("error", "Email already exists");
-            return ResponseEntity.badRequest().body(response);
+        if (userRepository.findByEmail(email).isPresent()) {
+            return ResponseEntity.badRequest().body("Email already exists");
         }
 
-        // Encode password and save user
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        User user = new User();
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(password));
         userRepository.save(user);
 
-        response.put("message", "User registered successfully");
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok("User registered successfully");
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
-        Map<String, String> response = new HashMap<>();
-        String username = credentials.get("username");
-        String password = credentials.get("password");
+    public ResponseEntity<?> login(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        String password = request.get("password");
 
-        Optional<User> userOptional = userRepository.findByUsername(username);
-        
-        if (userOptional.isPresent() && passwordEncoder.matches(password, userOptional.get().getPassword())) {
-            response.put("message", "Login successful");
-            return ResponseEntity.ok(response);
+        try {
+            authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(username, password)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Invalid username or password");
         }
 
-        response.put("error", "Invalid username or password");
-        return ResponseEntity.badRequest().body(response);
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String token = jwtUtil.generateToken(user);
+        Map<String, String> response = new HashMap<>();
+        response.put("token", token);
+        response.put("username", user.getUsername());
+
+        return ResponseEntity.ok(response);
     }
 } 

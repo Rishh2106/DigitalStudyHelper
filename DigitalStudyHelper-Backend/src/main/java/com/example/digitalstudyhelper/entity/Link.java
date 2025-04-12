@@ -1,6 +1,8 @@
 package com.example.digitalstudyhelper.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -11,18 +13,24 @@ public class Link {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "URL is required")
     @Column(nullable = false)
     private String url;
 
+    @NotBlank(message = "Hyperlink text is required")
     @Column(nullable = false)
-    private String name;
+    private String hyperlink;
 
-    @Column(nullable = false)
+    @NotNull
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "created_by", nullable = false)
+    private User createdBy;
+
+    public Link() {
+    }
 
     @PrePersist
     protected void onCreate() {
@@ -46,12 +54,12 @@ public class Link {
         this.url = url;
     }
 
-    public String getName() {
-        return name;
+    public String getHyperlink() {
+        return hyperlink;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setHyperlink(String hyperlink) {
+        this.hyperlink = hyperlink;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -62,12 +70,12 @@ public class Link {
         this.createdAt = createdAt;
     }
 
-    public User getUser() {
-        return user;
+    public User getCreatedBy() {
+        return createdBy;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setCreatedBy(User createdBy) {
+        this.createdBy = createdBy;
     }
 
     // Equals and HashCode
@@ -78,12 +86,12 @@ public class Link {
         Link link = (Link) o;
         return Objects.equals(id, link.id) &&
                Objects.equals(url, link.url) &&
-               Objects.equals(name, link.name);
+               Objects.equals(hyperlink, link.hyperlink);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, url, name);
+        return Objects.hash(id, url, hyperlink);
     }
 
     // ToString
@@ -92,7 +100,7 @@ public class Link {
         return "Link{" +
                "id=" + id +
                ", url='" + url + '\'' +
-               ", name='" + name + '\'' +
+               ", hyperlink='" + hyperlink + '\'' +
                ", createdAt=" + createdAt +
                '}';
     }

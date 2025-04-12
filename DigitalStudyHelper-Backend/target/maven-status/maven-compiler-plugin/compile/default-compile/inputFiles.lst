@@ -2,10 +2,7 @@ C:\Users\rishi\Desktop\DigitalStudyHelper\DigitalStudyHelper-Backend\src\main\ja
 C:\Users\rishi\Desktop\DigitalStudyHelper\DigitalStudyHelper-Backend\src\main\java\com\example\digitalstudyhelper\entity\Link.java
 C:\Users\rishi\Desktop\DigitalStudyHelper\DigitalStudyHelper-Backend\src\main\java\com\example\digitalstudyhelper\repository\UserRepository.java
 C:\Users\rishi\Desktop\DigitalStudyHelper\DigitalStudyHelper-Backend\src\main\java\com\example\digitalstudyhelper\controller\AuthController.java
-C:\Users\rishi\Desktop\DigitalStudyHelper\DigitalStudyHelper-Backend\src\main\java\com\example\digitalstudyhelper\dto\OAuth2UserRegistrationRequest.java
 C:\Users\rishi\Desktop\DigitalStudyHelper\DigitalStudyHelper-Backend\src\main\java\com\example\digitalstudyhelper\entity\User.java
-C:\Users\rishi\Desktop\DigitalStudyHelper\DigitalStudyHelper-Backend\src\main\java\com\example\digitalstudyhelper\service\CustomOAuth2UserService.java
 C:\Users\rishi\Desktop\DigitalStudyHelper\DigitalStudyHelper-Backend\src\main\java\com\example\digitalstudyhelper\controller\LinkController.java
-C:\Users\rishi\Desktop\DigitalStudyHelper\DigitalStudyHelper-Backend\src\main\java\com\example\digitalstudyhelper\controller\OAuth2RegistrationController.java
 C:\Users\rishi\Desktop\DigitalStudyHelper\DigitalStudyHelper-Backend\src\main\java\com\example\digitalstudyhelper\config\SecurityConfig.java
 C:\Users\rishi\Desktop\DigitalStudyHelper\DigitalStudyHelper-Backend\src\main\java\com\example\digitalstudyhelper\repository\LinkRepository.java

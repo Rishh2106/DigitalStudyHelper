@@ -10,14 +10,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api")
-@CrossOrigin(origins = "http://localhost:5173")
+@RequestMapping("/api/links")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class LinkController {
 
     @Autowired
@@ -26,122 +28,92 @@ public class LinkController {
     @Autowired
     private UserRepository userRepository;
 
-    @PostMapping("/create-link")
+    @PostMapping
     public ResponseEntity<?> createLink(@RequestBody Map<String, String> request) {
-        try {
-            // Log the incoming request
-            System.out.println("Received create-link request: " + request);
+        String url = request.get("url");
+        String hyperlink = request.get("hyperlink");
 
-            // Get authentication
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || !authentication.isAuthenticated()) {
-                System.out.println("Authentication failed: Not authenticated");
-                return ResponseEntity.status(401).body(Map.of("error", "Not authenticated"));
-            }
-
-            String username = authentication.getName();
-            System.out.println("Authenticated user: " + username);
-
-            // Find user
-            Optional<User> userOpt = userRepository.findByUsername(username);
-            if (userOpt.isEmpty()) {
-                System.out.println("User not found: " + username);
-                return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
-            }
-
-            // Validate request
-            String url = request.get("url");
-            String name = request.get("name");
-            
-            if (url == null || url.trim().isEmpty()) {
-                System.out.println("Invalid URL");
-                return ResponseEntity.badRequest().body(Map.of("error", "URL is required"));
-            }
-            
-            if (name == null || name.trim().isEmpty()) {
-                System.out.println("Invalid name");
-                return ResponseEntity.badRequest().body(Map.of("error", "Name is required"));
-            }
-
-            // Create and save link
-            User user = userOpt.get();
-            Link link = new Link();
-            link.setUrl(url);
-            link.setName(name);
-            link.setUser(user);
-            
-            System.out.println("Saving link: " + link);
-            Link savedLink = linkRepository.save(link);
-            System.out.println("Link saved successfully: " + savedLink);
-            
-            // Prepare response
-            Map<String, Object> response = new HashMap<>();
-            response.put("id", savedLink.getId());
-            response.put("url", savedLink.getUrl());
-            response.put("name", savedLink.getName());
-            response.put("createdAt", savedLink.getCreatedAt());
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            System.out.println("Error creating link: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body(Map.of("error", "Failed to create link: " + e.getMessage()));
+        if (url == null || url.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "URL is required"));
         }
+
+        if (hyperlink == null || hyperlink.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Hyperlink text is required"));
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        Optional<User> userOptional = userRepository.findByUsername(username);
+
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
+        }
+
+        User user = userOptional.get();
+        Link link = new Link();
+        link.setUrl(url);
+        link.setHyperlink(hyperlink);
+        link.setCreatedBy(user);
+        link.setCreatedAt(LocalDateTime.now());
+
+        Link savedLink = linkRepository.save(link);
+        return ResponseEntity.ok(Map.of(
+            "id", savedLink.getId(),
+            "url", savedLink.getUrl(),
+            "hyperlink", savedLink.getHyperlink(),
+            "createdAt", savedLink.getCreatedAt()
+        ));
     }
 
-    @GetMapping("/links")
-    public ResponseEntity<?> getUserLinks() {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(401).body(Map.of("error", "Not authenticated"));
-            }
+    @GetMapping
+    public ResponseEntity<?> getLinks() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        Optional<User> userOptional = userRepository.findByUsername(username);
 
-            String username = authentication.getName();
-            Optional<User> userOpt = userRepository.findByUsername(username);
-            if (userOpt.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
-            }
-
-            List<Link> links = linkRepository.findByUserOrderByCreatedAtDesc(userOpt.get());
-            return ResponseEntity.ok(links);
-        } catch (Exception e) {
-            System.out.println("Error fetching links: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body(Map.of("error", "Failed to fetch links: " + e.getMessage()));
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
         }
+
+        User user = userOptional.get();
+        List<Link> links = linkRepository.findByCreatedByOrderByCreatedAtDesc(user);
+        List<Map<String, Object>> formattedLinks = new ArrayList<>();
+
+        for (Link link : links) {
+            Map<String, Object> linkMap = new HashMap<>();
+            linkMap.put("id", link.getId());
+            linkMap.put("url", link.getUrl());
+            linkMap.put("hyperlink", link.getHyperlink());
+            linkMap.put("createdAt", link.getCreatedAt());
+            formattedLinks.add(linkMap);
+        }
+
+        return ResponseEntity.ok(formattedLinks);
     }
 
-    @DeleteMapping("/links/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteLink(@PathVariable Long id) {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(401).body(Map.of("error", "Not authenticated"));
-            }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        Optional<User> userOptional = userRepository.findByUsername(username);
 
-            String username = authentication.getName();
-            Optional<User> userOpt = userRepository.findByUsername(username);
-            if (userOpt.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
-            }
-
-            Optional<Link> linkOpt = linkRepository.findById(id);
-            if (linkOpt.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            Link link = linkOpt.get();
-            if (!link.getUser().getUsername().equals(username)) {
-                return ResponseEntity.status(403).body(Map.of("error", "Not authorized to delete this link"));
-            }
-
-            linkRepository.delete(link);
-            return ResponseEntity.ok(Map.of("message", "Link deleted successfully"));
-        } catch (Exception e) {
-            System.out.println("Error deleting link: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body(Map.of("error", "Failed to delete link: " + e.getMessage()));
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
         }
+
+        User user = userOptional.get();
+        Optional<Link> linkOptional = linkRepository.findById(id);
+
+        if (linkOptional.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Link link = linkOptional.get();
+        if (!link.getCreatedBy().getId().equals(user.getId())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Not authorized to delete this link"));
+        }
+
+        linkRepository.delete(link);
+        return ResponseEntity.ok(Map.of("message", "Link deleted successfully"));
     }
 } 
