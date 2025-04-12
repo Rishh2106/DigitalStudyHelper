@@ -7,10 +7,12 @@ function AuthForm({ onAuthSuccess }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
+        setIsLoading(true);
 
         try {
             const endpoint = isLogin ? '/login' : '/register';
@@ -26,13 +28,12 @@ function AuthForm({ onAuthSuccess }) {
                 body: JSON.stringify(body)
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                const errorData = await response.text();
-                throw new Error(errorData || 'Authentication failed');
+                throw new Error(data.error || 'Authentication failed');
             }
 
-            const data = await response.json();
-            
             if (isLogin) {
                 localStorage.setItem('token', data.token);
                 onAuthSuccess({
@@ -43,10 +44,14 @@ function AuthForm({ onAuthSuccess }) {
                 // For registration, show success message and switch to login
                 setError('Registration successful! Please login.');
                 setIsLogin(true);
+                setUsername('');
+                setPassword('');
             }
         } catch (err) {
             setError(err.message);
             console.error('Auth error:', err);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -54,7 +59,7 @@ function AuthForm({ onAuthSuccess }) {
         <div className="auth-container">
             <div className="auth-form">
                 <h2>{isLogin ? 'Login' : 'Register'}</h2>
-                {error && <div className="error">{error}</div>}
+                {error && <div className={`error ${error.includes('successful') ? 'success' : ''}`}>{error}</div>}
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label htmlFor="username">Username:</label>
@@ -64,6 +69,7 @@ function AuthForm({ onAuthSuccess }) {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
+                            disabled={isLoading}
                         />
                     </div>
                     {!isLogin && (
@@ -75,6 +81,7 @@ function AuthForm({ onAuthSuccess }) {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
+                                disabled={isLoading}
                             />
                         </div>
                     )}
@@ -86,9 +93,12 @@ function AuthForm({ onAuthSuccess }) {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
+                            disabled={isLoading}
                         />
                     </div>
-                    <button type="submit">{isLogin ? 'Login' : 'Register'}</button>
+                    <button type="submit" disabled={isLoading}>
+                        {isLoading ? 'Processing...' : (isLogin ? 'Login' : 'Register')}
+                    </button>
                 </form>
                 <p>
                     {isLogin ? "Don't have an account? " : "Already have an account? "}
@@ -97,7 +107,11 @@ function AuthForm({ onAuthSuccess }) {
                         onClick={() => {
                             setIsLogin(!isLogin);
                             setError(null);
+                            setUsername('');
+                            setPassword('');
+                            setEmail('');
                         }}
+                        disabled={isLoading}
                     >
                         {isLogin ? 'Register' : 'Login'}
                     </button>

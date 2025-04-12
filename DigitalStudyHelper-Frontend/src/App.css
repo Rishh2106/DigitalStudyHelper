@@ -93,6 +93,14 @@ body {
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 16px;
+  word-break: break-all;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.form-group input[type="url"] {
+  min-width: 300px;
+  max-width: 100%;
 }
 
 .form-group input:focus {

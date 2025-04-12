@@ -165,6 +165,9 @@ function App() {
                 onChange={(e) => setUrl(e.target.value)}
                 required
                 placeholder="Enter URL"
+                maxLength={2048}
+                pattern="https?://.+"
+                title="Please enter a valid URL starting with http:// or https://"
               />
             </div>
             <div className="form-group">

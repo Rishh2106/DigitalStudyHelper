@@ -14,7 +14,7 @@ public class Link {
     private Long id;
 
     @NotBlank(message = "URL is required")
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String url;
 
     @NotBlank(message = "Hyperlink text is required")
