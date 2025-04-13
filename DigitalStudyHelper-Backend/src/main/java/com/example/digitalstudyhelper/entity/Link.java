@@ -29,6 +29,10 @@ public class Link {
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id", nullable = false)
+    private Group group;
+
     public Link() {
     }
 
@@ -76,6 +80,14 @@ public class Link {
 
     public void setCreatedBy(User createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public Group getGroup() {
+        return group;
+    }
+
+    public void setGroup(Group group) {
+        this.group = group;
     }
 
     // Equals and HashCode

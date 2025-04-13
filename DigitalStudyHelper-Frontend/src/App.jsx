@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import AuthForm from './components/AuthForm'
+import GroupForm from './components/GroupForm'
+import GroupList from './components/GroupList'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
+  const [selectedGroup, setSelectedGroup] = useState(null)
   const [links, setLinks] = useState([])
   const [url, setUrl] = useState('')
   const [hyperlink, setHyperlink] = useState('')
@@ -14,47 +17,8 @@ function App() {
     const token = localStorage.getItem('token');
     if (token) {
       setIsAuthenticated(true);
-      // You might want to validate the token here
     }
   }, []);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchLinks();
-    }
-  }, [isAuthenticated]);
-
-  const fetchLinks = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      const response = await fetch('http://localhost:8080/api/links', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.status === 401) {
-        // Token expired or invalid
-        handleLogout();
-        throw new Error('Session expired. Please login again.');
-      }
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch links');
-      }
-
-      const data = await response.json();
-      setLinks(data);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
 
   const handleAuthSuccess = (userData) => {
     setIsAuthenticated(true);
@@ -65,9 +29,43 @@ function App() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     setCurrentUser(null);
+    setSelectedGroup(null);
     setLinks([]);
     localStorage.removeItem('token');
     setError(null);
+  };
+
+  const handleGroupCreated = (group) => {
+    setSelectedGroup(group.id);
+  };
+
+  const handleGroupSelect = (groupId) => {
+    setSelectedGroup(groupId);
+    fetchLinks(groupId);
+  };
+
+  const fetchLinks = async (groupId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(`http://localhost:8080/api/links/group/${groupId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch links');
+      }
+
+      const data = await response.json();
+      setLinks(data);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -86,13 +84,12 @@ function App() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ url, hyperlink })
+        body: JSON.stringify({ 
+          url, 
+          hyperlink,
+          groupId: selectedGroup 
+        })
       });
-
-      if (response.status === 401) {
-        handleLogout();
-        throw new Error('Session expired. Please login again.');
-      }
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -118,15 +115,9 @@ function App() {
       const response = await fetch(`http://localhost:8080/api/links/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
         }
       });
-
-      if (response.status === 401) {
-        handleLogout();
-        throw new Error('Session expired. Please login again.');
-      }
 
       if (!response.ok) {
         throw new Error('Failed to delete link');
@@ -153,62 +144,68 @@ function App() {
       </header>
 
       <main className="main-content">
-        <div className="link-form">
-          <h2>Create New Link</h2>
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="url">URL:</label>
-              <input
-                type="url"
-                id="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                required
-                placeholder="Enter URL"
-                maxLength={2048}
-                pattern="https?://.+"
-                title="Please enter a valid URL starting with http:// or https://"
-              />
+        {!selectedGroup ? (
+          <>
+            <GroupForm onGroupCreated={handleGroupCreated} />
+            <GroupList onGroupSelect={handleGroupSelect} />
+          </>
+        ) : (
+          <>
+            <div className="link-form">
+              <h2>Add New Link</h2>
+              <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                  <label htmlFor="url">URL:</label>
+                  <input
+                    type="url"
+                    id="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    required
+                    placeholder="Enter URL"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="hyperlink">Hyperlink Text:</label>
+                  <input
+                    type="text"
+                    id="hyperlink"
+                    value={hyperlink}
+                    onChange={(e) => setHyperlink(e.target.value)}
+                    required
+                    placeholder="Enter hyperlink text"
+                  />
+                </div>
+                <button type="submit" className="submit-btn">Add Link</button>
+              </form>
             </div>
-            <div className="form-group">
-              <label htmlFor="hyperlink">Hyperlink Text:</label>
-              <input
-                type="text"
-                id="hyperlink"
-                value={hyperlink}
-                onChange={(e) => setHyperlink(e.target.value)}
-                required
-                placeholder="Enter hyperlink text"
-              />
+
+            {error && <div className="error-message">{error}</div>}
+
+            <div className="links-list">
+              <h2>Links in this Group</h2>
+              {links.length === 0 ? (
+                <p>No links in this group yet. Add your first link!</p>
+              ) : (
+                <ul>
+                  {links.map(link => (
+                    <li key={link.id} className="link-item">
+                      <a href={link.url} target="_blank" rel="noopener noreferrer">
+                        {link.hyperlink}
+                      </a>
+                      <button
+                        onClick={() => handleDelete(link.id)}
+                        className="delete-btn"
+                      >
+                        Delete
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            <button type="submit" className="submit-btn">Create Link</button>
-          </form>
-        </div>
-
-        {error && <div className="error-message">{error}</div>}
-
-        <div className="links-list">
-          <h2>Your Links</h2>
-          {links.length === 0 ? (
-            <p>No links created yet. Create your first link above!</p>
-          ) : (
-            <ul>
-              {links.map(link => (
-                <li key={link.id} className="link-item">
-                  <a href={link.url} target="_blank" rel="noopener noreferrer">
-                    {link.hyperlink}
-                  </a>
-                  <button
-                    onClick={() => handleDelete(link.id)}
-                    className="delete-btn"
-                  >
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+          </>
+        )}
       </main>
     </div>
   );
