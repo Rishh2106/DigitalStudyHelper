@@ -1,0 +1,84 @@
+.rich-text-editor {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    background-color: #f8f9fa;
+}
+
+.toolbar button {
+    padding: 5px 10px;
+    border: 1px solid #ddd;
+    background-color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.toolbar button:hover {
+    background-color: #f0f0f0;
+}
+
+.toolbar button.is-active {
+    background-color: #e0e0e0;
+    border-color: #999;
+}
+
+.ProseMirror {
+    padding: 20px;
+    min-height: 200px;
+    outline: none;
+}
+
+.ProseMirror p {
+    margin-bottom: 1em;
+}
+
+.ProseMirror h1 {
+    font-size: 2em;
+    margin-bottom: 0.5em;
+}
+
+.ProseMirror h2 {
+    font-size: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+    padding-left: 2em;
+    margin-bottom: 1em;
+}
+
+.ProseMirror a {
+    color: #3498db;
+    text-decoration: underline;
+}
+
+.ProseMirror img {
+    max-width: 100%;
+    height: auto;
+}
+
+.error-message {
+    color: #e74c3c;
+    background-color: #fadbd8;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 4px;
+}
+
+.saving-indicator {
+    color: #666;
+    padding: 10px;
+    margin: 10px;
+    font-style: italic;
+} 

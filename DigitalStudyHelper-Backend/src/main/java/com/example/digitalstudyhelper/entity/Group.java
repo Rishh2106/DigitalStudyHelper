@@ -27,6 +27,9 @@ public class Group {
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Link> links = new ArrayList<>();
 
+    @OneToOne(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Note note;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -81,5 +84,16 @@ public class Group {
     public void removeLink(Link link) {
         links.remove(link);
         link.setGroup(null);
+    }
+
+    public Note getNote() {
+        return note;
+    }
+
+    public void setNote(Note note) {
+        this.note = note;
+        if (note != null) {
+            note.setGroup(this);
+        }
     }
 } 

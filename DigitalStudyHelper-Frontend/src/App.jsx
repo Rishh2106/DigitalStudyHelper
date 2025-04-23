@@ -3,6 +3,7 @@ import './App.css'
 import AuthForm from './components/AuthForm'
 import GroupForm from './components/GroupForm'
 import GroupList from './components/GroupList'
+import RichTextEditor from './components/RichTextEditor'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -181,6 +182,11 @@ function App() {
             </div>
 
             {error && <div className="error-message">{error}</div>}
+
+            <div className="notes-section">
+              <h2>Notes</h2>
+              <RichTextEditor groupId={selectedGroup} />
+            </div>
 
             <div className="links-list">
               <h2>Links in this Group</h2>
