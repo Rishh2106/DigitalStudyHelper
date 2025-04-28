@@ -232,7 +232,10 @@ public class GroupController {
 
                 Group group = new Group();
                 group.setName(name);
-                group.setCreatedAt(LocalDateTime.parse((String) groupData.get("createdAt")));
+                // Parse the createdAt string, handling microseconds
+                String createdAtStr = (String) groupData.get("createdAt");
+                LocalDateTime createdAt = LocalDateTime.parse(createdAtStr.substring(0, createdAtStr.lastIndexOf('.')));
+                group.setCreatedAt(createdAt);
                 group.setUser(user);
 
                 // Create and add links
@@ -243,7 +246,10 @@ public class GroupController {
                         Link link = new Link();
                         link.setUrl((String) linkData.get("url"));
                         link.setHyperlink((String) linkData.get("hyperlink"));
-                        link.setCreatedAt(LocalDateTime.parse((String) linkData.get("createdAt")));
+                        // Parse link createdAt string, handling microseconds
+                        String linkCreatedAtStr = (String) linkData.get("createdAt");
+                        LocalDateTime linkCreatedAt = LocalDateTime.parse(linkCreatedAtStr.substring(0, linkCreatedAtStr.lastIndexOf('.')));
+                        link.setCreatedAt(linkCreatedAt);
                         link.setCreatedBy(user);
                         group.addLink(link);
                     }
@@ -266,6 +272,55 @@ public class GroupController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                 .body(Map.of("error", "Failed to import groups: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{id}/export")
+    public ResponseEntity<?> exportGroup(@PathVariable Long id) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            Optional<User> userOptional = userRepository.findByUsername(username);
+
+            if (userOptional.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
+            }
+
+            User user = userOptional.get();
+            Optional<Group> groupOptional = groupRepository.findById(id);
+
+            if (groupOptional.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Group group = groupOptional.get();
+            if (!group.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Not authorized to access this group"));
+            }
+
+            Map<String, Object> exportData = new HashMap<>();
+            exportData.put("name", group.getName());
+            exportData.put("createdAt", group.getCreatedAt().toString());
+            
+            List<Map<String, Object>> linkList = group.getLinks().stream()
+                .map(link -> {
+                    Map<String, Object> linkMap = new HashMap<>();
+                    linkMap.put("url", link.getUrl());
+                    linkMap.put("hyperlink", link.getHyperlink());
+                    linkMap.put("createdAt", link.getCreatedAt().toString());
+                    return linkMap;
+                })
+                .collect(Collectors.toList());
+            exportData.put("links", linkList);
+            
+            if (group.getNote() != null) {
+                exportData.put("noteContent", group.getNote().getContent());
+            }
+
+            return ResponseEntity.ok(exportData);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                .body(Map.of("error", "Failed to export group: " + e.getMessage()));
         }
     }
 } 

@@ -1,12 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './ImportExport.css';
 
 function ImportExport({ onImportSuccess }) {
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
+
+    useEffect(() => {
+        // Check for success state on component mount
+        const importSuccess = localStorage.getItem('importSuccess');
+        if (importSuccess === 'true') {
+            setSuccess(true);
+            const timer = setTimeout(() => {
+                setSuccess(false);
+                localStorage.removeItem('importSuccess');
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, []);
+
+    const getCollectionsCount = async (token) => {
+        const response = await fetch('http://localhost:8080/api/groups', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (!response.ok) {
+            throw new Error('Failed to fetch collections');
+        }
+        const collections = await response.json();
+        return collections.length;
+    };
 
     const handleExport = async () => {
         try {
+            setError(null);
+            setSuccess(false);
             const token = localStorage.getItem('token');
             if (!token) {
                 throw new Error('No authentication token found');
@@ -46,6 +75,7 @@ function ImportExport({ onImportSuccess }) {
 
         setIsLoading(true);
         setError(null);
+        setSuccess(false);
 
         try {
             const token = localStorage.getItem('token');
@@ -53,10 +83,43 @@ function ImportExport({ onImportSuccess }) {
                 throw new Error('No authentication token found');
             }
 
+            const initialCount = await getCollectionsCount(token);
+
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
-                    const data = JSON.parse(e.target.result);
+                    let data;
+                    try {
+                        data = JSON.parse(e.target.result);
+                    } catch (parseError) {
+                        const fixedJson = e.target.result
+                            .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3')
+                            .replace(/,(\s*[}\]])/g, '$1');
+                        
+                        try {
+                            data = JSON.parse(fixedJson);
+                        } catch (fixedError) {
+                            const errorMessage = parseError.message;
+                            const position = errorMessage.match(/position (\d+)/);
+                            if (position) {
+                                const pos = parseInt(position[1]);
+                                const context = e.target.result.substring(Math.max(0, pos - 50), Math.min(e.target.result.length, pos + 50));
+                                throw new Error(`Invalid JSON format at position ${pos}:\n${context}\n${errorMessage}`);
+                            }
+                            throw new Error(`Invalid JSON format: ${errorMessage}`);
+                        }
+                    }
+                    
+                    const importData = Array.isArray(data) ? data : [data];
+                    
+                    importData.forEach((collection, index) => {
+                        if (!collection || typeof collection !== 'object') {
+                            throw new Error(`Invalid collection at index ${index}`);
+                        }
+                        if (!collection.name) {
+                            throw new Error(`Collection at index ${index} is missing a name`);
+                        }
+                    });
                     
                     const response = await fetch('http://localhost:8080/api/groups/import', {
                         method: 'POST',
@@ -64,7 +127,7 @@ function ImportExport({ onImportSuccess }) {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify(data)
+                        body: JSON.stringify(importData)
                     });
 
                     if (!response.ok) {
@@ -72,8 +135,15 @@ function ImportExport({ onImportSuccess }) {
                         throw new Error(errorData.error || 'Failed to import groups');
                     }
 
-                    const result = await response.json();
-                    onImportSuccess(result);
+                    const finalCount = await getCollectionsCount(token);
+                    
+                    // Set success state in localStorage before refreshing
+                    localStorage.setItem('importSuccess', 'true');
+                    
+                    // Refresh the UI
+                    if (onImportSuccess) {
+                        await onImportSuccess();
+                    }
                 } catch (err) {
                     setError(err.message);
                 } finally {
@@ -91,6 +161,7 @@ function ImportExport({ onImportSuccess }) {
         <div className="import-export">
             <h2>Import/Export Collections</h2>
             {error && <div className="error-message">{error}</div>}
+            {success && <div className="success-message">Collections imported successfully!</div>}
             <div className="buttons">
                 <button 
                     onClick={handleExport}

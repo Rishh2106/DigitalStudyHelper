@@ -131,6 +131,41 @@ function App() {
     }
   };
 
+  const handleExport = async (groupId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(`http://localhost:8080/api/groups/${groupId}/export`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to export group');
+      }
+
+      const data = await response.json();
+      
+      // Create a download link
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `study_group_${data.name}_export.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   if (!isAuthenticated) {
     return <AuthForm onAuthSuccess={handleAuthSuccess} />;
   }
@@ -154,6 +189,16 @@ function App() {
           </>
         ) : (
           <>
+            <div className="group-header">
+              <h2>Collection Details</h2>
+              <button 
+                onClick={() => handleExport(selectedGroup)}
+                className="export-btn"
+              >
+                Export Collection
+              </button>
+            </div>
+
             <div className="link-form">
               <h2>Add New Link</h2>
               <form onSubmit={handleSubmit}>
