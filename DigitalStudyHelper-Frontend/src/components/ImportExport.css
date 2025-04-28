@@ -1,0 +1,54 @@
+.import-export {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.import-export h2 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.export-btn,
+.import-btn {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.export-btn:hover:not(:disabled),
+.import-btn:hover:not(:disabled) {
+    background-color: #2980b9;
+}
+
+.export-btn:disabled,
+.import-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.error-message {
+    color: #e74c3c;
+    background-color: #fadbd8;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.loading {
+    color: #666;
+    margin-top: 10px;
+    font-style: italic;
+} 

@@ -4,6 +4,7 @@ import AuthForm from './components/AuthForm'
 import GroupForm from './components/GroupForm'
 import GroupList from './components/GroupList'
 import RichTextEditor from './components/RichTextEditor'
+import ImportExport from './components/ImportExport'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -147,6 +148,7 @@ function App() {
       <main className="main-content">
         {!selectedGroup ? (
           <>
+            <ImportExport onImportSuccess={() => window.location.reload()} />
             <GroupForm onGroupCreated={handleGroupCreated} />
             <GroupList onGroupSelect={handleGroupSelect} />
           </>
